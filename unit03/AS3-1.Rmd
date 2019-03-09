@@ -107,20 +107,28 @@ summary(mvt)
 + Hour:Minute Day/Month/Year
 
 ```{r}
-mvt$Date[1]
+head(mvt$Date)  # Month/Day/Year Hour:Minute
 #
 ```
 
 ```{r}
-#
+ts = as.POSIXct(mvt$Date, format="%m/%d/%y %H:%M")
+par(cex=0.7)
+hist(ts,"year",las=2,freq=T,xlab="")
 ```
 
 ```{r}
 #
+table(format(ts,'%u'))
+table(format(ts,'%m'))
+table(weekday=format(ts,'%u'), month=format(ts,'%m'))
 ```
 
 ```{r fig.height=2.5, fig.width=8}
 #
+table(format(ts,"%u"), format(ts,"%H")) %>% 
+  as.data.frame.matrix %>% 
+  d3heatmap(F,F,col=colorRamp(c('seagreen','lightyellow','red')))
 ```
 
 
@@ -165,19 +173,18 @@ hist(mvt$Year)
 
 【3.2】 Does it look like there were more crimes for which arrests were made in the first half of the time period or the second half of the time period?
 ```{r}
-table(mvt$Arrest, mvt$Year)
-((2152+2115+1798+1693+1528+1302)/(2152+2115+1798+1693+1528+1302+18517+16638+14859+15169+14956+14796))>((1212+1020+840+701+625+550)/(1212+1020+840+701+625+550+13068+13425+11327+14796+15012+13542))
+table(ts > as.POSIXct("2007-01-01"))
 #TRUE
 ```
 
 【3.3】 For what proportion of motor vehicle thefts in 2001 was an arrest made?
 ```{r}
-#指令同上:2152/(2152+18517)=0.1041
+table(mvt$Arrest, format(ts,'%Y')) %>% prop.table(2) %>% round(3) # 0.104
 ```
 
 【3.4】 For what proportion of motor vehicle thefts in 2007 was an arrest made?
 ```{r}
-#指令同上:1212/(1212+13068)=0.08487
+tapply(mvt$Arrest, format(ts,'%Y'), mean) %>% round(3) # 0.085
 ```
 
 【3.5】 For what proportion of motor vehicle thefts in 2012 was an arrest made?
@@ -200,8 +207,9 @@ tail(sort(aa))
 
 【4.2】 How many observations are in Top5?
 ```{r}
-1675+2111+2308+14852+156564
-#177510
+(top5 = names(table(mvt$LocationDescription) %>% sort %>% tail(6))[-4])
+
+sum(mvt$LocationDescription %in% top5)  # 177510
 ```
 
 【4.3】 One of the locations has a much higher arrest rate than the other locations. Which is it? 
