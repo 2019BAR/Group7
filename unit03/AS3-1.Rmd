@@ -46,7 +46,7 @@ pacman::p_load(dplyr, d3heatmap)
 
 【1.1】How many rows of data (observations) are in this dataset?
 ```{r}
-mvt = read.csv("mvtWeek1.csv")
+mvt = read.csv("data/mvtWeek1.csv")
 nrow(mvt)  
 #191641
 ```
@@ -134,14 +134,14 @@ median(Dateconvert)
 【2.3】 In which month did the fewest motor vehicle thefts occur?
 ```{r}
 mvt$Month <- months(Dateconvert)
-table(mvt$Month)
+sort(table(mvt$Month), decreasing = T)
 #二月
 ```
 
 【2.4】 On which weekday did the most motor vehicle thefts occur?
 ```{r}
 mvt$Week <- weekdays(Dateconvert)
-table(weekdays)
+sort(table(mvt$Week))
 #星期五
 ```
 
