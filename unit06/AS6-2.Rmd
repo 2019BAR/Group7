@@ -1,0 +1,66 @@
+---
+title: 第六單元：基礎統計 with R
+author: 中山大學管理學院 第7組
+date: "`r Sys.time()`"
+output: 
+  html_document:
+    highlight: pygments
+    theme: flatly
+    css: style.css
+---
+
+```{r results='hide', message=FALSE, warning=FALSE, echo=F}
+# 這些程式碼設定網頁的格式，並安裝、載入一些基本的套件，請大家不要去改動<br>
+rm(list=ls(all=T))
+knitr::opts_chunk$set(comment = NA)
+knitr::opts_knit$set(global.par = TRUE)
+par(cex=0.8)
+options(scipen=20, digits=5, width=80)
+if(!require(pacman)) install.packages("pacman")
+```
+<hr>
+
+### <span style="font-size:22px">`r "\U1F5FF"` 問題討論：</span>  {data-height=250}
+<p class="qiz">
+【A.選擇方法】<br>
+&emsp;■ 我們為甚麼需要隨機變數？ 什麼時候我們需要用到隨機變數？<br>
+&emsp;■ 隨機變數沒有固定的值，那我們要如何做計算呢？<br>
+&emsp;■ 我們可以用直方圖或數值標記來估計噴發時間落在某一區間的機率嗎？<br>
+&emsp;■ 直方圖(histogram)也可以當作一種模型嗎？ 數值標記(rug)呢？<br>
+&emsp;■ 直方圖和平滑模型哪一個比較適合用來表示噴發時間的分布？ 為甚麼？<br>
+&emsp;■ 用數值標記來預測噴發時間會比用直方圖「準」嗎？ 「準」是什麼意思呢？<br>
+<br>
+【B.調整參數】調整一下模型參數的滑桿 ...<br>
+&emsp;■ 你覺得最合適的直方圖欄數(`support/binwidth`)是？ 為甚麼？<br>
+&emsp;■ 最合適的平滑模型頻寬(`bandwidth`)呢？<br>
+&emsp;■ 調高欄寬和頻寬會讓模型變複雜，還是變簡單呢？<br>
+&emsp;■ 模型越複雜，它跟實際值之間的誤差是越大、還是越小？<br>
+&emsp;■ 那麼，越複雜的模型就會越準，對嗎？<br>
+<br>
+【C.建立模型、估計機率】<br>
+請從課堂筆記的程式碼找出來 ... <br>
+&emsp;■ 從變數向量(`D`)求出機率密度曲線(`DEN`)<br>
+&emsp;■ 將機率密度曲線(`DEN`)轉換成機率密度函數(`PDF`)<br>
+&emsp;■ 對機率密度函數(`PDF`)做積分，算出機率(`PROB`)<br>
+這三行程式，然後...<br>
+&emsp;■ 將頻寬調整參數(`adjust`)設為`1`，算出「等待時間」落在80到90之間的機率<br>
+&emsp;■ 將頻寬調整參數設為`0.5`，算出等待時間落在80到90之間的機率<br>
+&emsp;■ 算出來的機率比較高的就是比較好的模型，對嗎？ 為甚麼？<br>
+<br>
+【D.預測與決策】<br>
+假設有一個賭局，你可以花30元選定一個連續60秒的時段，如果老忠實下一次的噴發時間落在你指定的區間，你就可以贏到100元；請你使用頻寬為`0.5`的平滑密度模型 ...<br>
+&emsp;■ 決定要不要參加這個賭局<br>
+&emsp;■ 如果你參加的話，你要把噴發時間設定在哪一個區間呢？<br>
+&emsp;■ 你設在這個區間的話，參加這個賭局的期望值是？<br>
+<br>
+假如賭場老闆從零開始把每10秒鐘設為一個區間，每個區間的賭金是五塊錢 ...<br>
+&emsp;■ 你要怎麼押注，才能獲得最高的期望值呢？<br>
+&emsp;■ 你的賭金和期望值各是多少？<br>
+<br>
+將獲利的期望值和賭金的比值稱為「期望投資報酬率」 ...<br>
+&emsp;■ 「最大期望投資報酬率」和「最大期望報酬」的投資策略是一樣的嗎？<br>
+&emsp;■ 你認為哪一個策略目標比較好呢？ 為什麼？<br>
+<br>
+作圖題-將Faith.R裡面Ｘ軸的噴發時間改成等待時間<br>
+<br>
+</p class="qiz">
