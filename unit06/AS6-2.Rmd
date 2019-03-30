@@ -75,5 +75,40 @@ if(!require(pacman)) install.packages("pacman")
 &emsp;■ 你認為哪一個策略目標比較好呢？ 為什麼？<br>
 <br>
 作圖題-將Faith.R裡面Ｘ軸的噴發時間改成等待時間<br>
+D = faithful$waiting  # copy to a short name
+
+# Frame
+par(cex = 1.2)
+plot(0,0,xlim=c(40,100),ylim=c(0,1.1),xlab="等待時間(分鐘)", 
+     ylab="密度 or (累計)機率", main="分布、機率與密度",
+     family="蘋方-繁 中黑體", size=14)
+abline(h=1, col='lightgray', lwd=0.25, lty=2)
+
+# Empirical PDF
+rug(D)
+# Empirical CDF
+plot(ecdf(D), cex=0, verticals=T, lwd=2, col='darkgray', add=T)
+scaleD <- scale(D, center=T,scale=T)
+# Histogram PDF
+Bins = 10                          # no. bins
+bx = seq(min(D), max(D), length=Bins) # break sequence 
+hist(D, col="#B3FFFF7F", border="white", ylim=c(0,1.1), 
+     freq=F, breaks=bx, add=T)
+
+abline(h=0, col='lightgray', lwd=0.25)
+# Histogram CDF
+adj = (bx[2] - bx[1])/2
+steps = stepfun(bx-adj, c(0, sapply(bx, function(b) mean(D <= b))))
+plot(steps, cex=0, col='#33CC337F', lwd=3, lty=1, add=T)
+
+# Smooth PDF
+Adjust = 1    # bandwidth adjustment
+DEN = density(D, adjust = Adjust)
+lines(DEN, col='gold', lwd=3)
+# Smooth CDF
+PDF = approxfun(DEN$x, DEN$y, yleft=0, yright=0)
+x = seq(1,6,0.1)
+y = sapply(x, function(i) integrate(PDF, -Inf, i)$value)
+lines(x, y, col='red', lwd=3, lty=2) 
 <br>
 </p class="qiz">
