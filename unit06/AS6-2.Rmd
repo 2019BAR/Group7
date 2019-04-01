@@ -9,15 +9,6 @@ output:
     css: JH.css
 ---
 
-```{r results='hide', message=FALSE, warning=FALSE, echo=F}
-# 這些程式碼設定網頁的格式，並安裝、載入一些基本的套件，請大家不要去改動<br>
-rm(list=ls(all=T))
-knitr::opts_chunk$set(comment = NA)
-knitr::opts_knit$set(global.par = TRUE)
-par(cex=0.8)
-options(scipen=20, digits=5, width=80)
-if(!require(pacman)) install.packages("pacman")
-```
 <hr>
 
 ### <span style="font-size:22px">`r "\U1F5FF"` 問題討論：</span>  {data-height=250}
@@ -25,47 +16,39 @@ if(!require(pacman)) install.packages("pacman")
 【作圖題】將Faith.R裡面Ｘ軸的噴發時間改成等待時間<br>
 ```{r}
 
-D = faithful$waiting  # copy to a short name
+W = faithful$waiting  # copy to a short name
 
 # Frame
 plot(0,0,xlim=c(42,97),ylim=c(0,1.1),xlab="等待時間(分鐘)", 
-     ylab="密度 or (累計)機率", main="分布、機率與密度")
+     ylab="密度 or (累計)機率", main="分布、機率與密度",
+     family = "蘋方-繁 中黑體")
 abline(h=1, col='lightgray', lwd=0.25, lty=2)
 
 # Empirical PDF
-rug(D)
+rug(W)
 # Empirical CDF
-plot(ecdf(D), cex=0, verticals=T, lwd=2, col='darkgray', add=T)
+plot(ecdf(W), cex=0, verticals=T, lwd=2, col='darkgray', add=T)
 
 # Histogram PDF
 Bins = 23               # no. bins
-bx = seq(min(D), max(D), length=Bins) # break sequence 
-hist(D, col="#B3FFFF7F", border="white", ylim=c(0,1.1),
+bx = seq(min(W), max(W), length=Bins) # break sequence 
+hist(W, col="#B3FFFF7F", border="white", ylim=c(0,1.1),
      freq=F, breaks=bx, add=T)
 abline(h=0, col='lightgray', lwd=0.25)
 # Histogram CDF
 adj = (bx[2] - bx[1])/2
-steps = stepfun(bx-adj, c(0, sapply(bx, function(b) mean(D <= b))))
+steps = stepfun(bx-adj, c(0, sapply(bx, function(b) mean(W <= b))))
 plot(steps, cex=0, col='#33CC337F', lwd=3, lty=1, add=T)
 
 # Smooth PDF
 Adjust = 1   # bandwidth adjustment
-DEN = density(D, adjust = Adjust)
-lines(DEN, col='gold', lwd=3)
+DENW = density(W, adjust = Adjust) #DENW = DEN for waiting time
+lines(DENW, col='gold', lwd=3)
 # Smooth CDF
-PDF = approxfun(DEN$x, DEN$y, yleft=0, yright=0)
+PDFW = approxfun(DENW$x, DENW$y, yleft=0, yright=0) #PDFW = PDF for waiting time
 x = seq(43,96,0.5)
-y = sapply(x, function(i) integrate(PDF, -Inf, i)$value)
+y = sapply(x, function(i) integrate(PDFW, -Inf, i)$value)
 lines(x, y, col='red', lwd=4, lty=3) 
-
-# Mark Range
-x1 = 80; x2 = 90
-rect(x1,-0.1,x2,1.2,col= rgb(0,1,0,alpha=0.2),border=NA)
-# x = seq(x1, x2, length=100)
-# polygon(c(x, x2, x1),  c(PDF(x), 0, 0), col="#FF99003F", border=NA)
-# Calculate Probability
-(integrate(PDF, x1, x2)$value)
-
 ```
 【A.選擇方法】<br>
 &emsp;■ 我們為甚麼需要隨機變數？ 什麼時候我們需要用到隨機變數？<br>
@@ -103,7 +86,7 @@ Ans:不一定，因為太接近原始資料就沒預測的價值了<br>
 &emsp;■ 將機率密度曲線(`DEN`)轉換成機率密度函數(`PDF`)<br>
 &emsp;■ 對機率密度函數(`PDF`)做積分，算出機率(`PROB`)<br>
 ```{r}
-D = faithful$waiting
+D = faithful$eruptions
 #(1)Adjust = 1   # bandwidth adjustment
 #DEN = density(D, adjust = Adjust)
 #(2)PDF = approxfun(DEN$x, DEN$y, yleft=0, yright=0)
@@ -116,21 +99,48 @@ D = faithful$waiting
 
 ```{r}
 #(1)Adjust = 1   # bandwidth adjustment
-DEN = density(D, adjust = Adjust)
-PDF = approxfun(DEN$x, DEN$y, yleft=0, yright=0)
-integrate(PDF, 80, 90)$value
+Adjust = 1
+DENW = density(W, adjust = Adjust)
+PDFW = approxfun(DENW$x, DENW$y, yleft=0, yright=0)
+integrate(PDFW, 80, 90)$value
+#Ans:0.26805065
 #(2)Adjust = 0.5 # bandwidth adjustment
-DEN = density(D, adjust = Adjust)
-PDF = approxfun(DEN$x, DEN$y, yleft=0, yright=0)
-integrate(PDF, 80, 90)$value
+Adjust = 0.5
+DENW = density(W, adjust = Adjust)
+PDFW = approxfun(DENW$x, DENW$y, yleft=0, yright=0)
+integrate(PDFW, 80, 90)$value
+#Ans:0.2827451
 #(3)不一定，有時候會有過度適配的問題。
 ```
 <br>
 【D.預測與決策】<br>
 假設有一個賭局，你可以花30元選定一個連續60秒的時段，如果老忠實下一次的噴發時間落在你指定的區間，你就可以贏到100元；請你使用頻寬為`0.5`的平滑密度模型 ...<br>
+```{r}
+#方法1, 從Shiny App http://140.117.69.135:4949/tonychuo/Faith.Rmd 自行操作調整
+
+#方法2
+D = faithful$eruptions
+Adjust = 0.5
+DEN = density(D, adjust = Adjust)
+PDF = approxfun(DEN$x, DEN$y, yleft=0, yright=0) #建好噴發時間的模型
+#以下以for迴圈的概念，抓出彼此間隔為60秒的兩點i1＆i2，並積分兩點得出機率
+i1=seq(1,5,by=0.1)
+i2=seq(2,6,by=0.1)
+p=data.frame(i1,i2)
+for(i in 1:41){
+  p[i,3]=integrate(PDF,i1[i],i2[i])$value
+}
+p[which(p$V3==max(p$V3)),] #再透過[]索引找出機率最大位於哪兩點間
+100*max(p$V3) - 30 #計算期望值
+```
 &emsp;■ 決定要不要參加這個賭局<br>
 &emsp;■ 如果你參加的話，你要把噴發時間設定在哪一個區間呢？<br>
 &emsp;■ 你設在這個區間的話，參加這個賭局的期望值是？<br>
+```{r}
+#Ans: 參加
+#Ans: 設於3.9～4.9分鐘間
+#Ans: 期望值為17.7塊
+```
 <br>
 假如賭場老闆從零開始把每10秒鐘設為一個區間，每個區間的賭金是五塊錢 ...<br>
 &emsp;■ 你要怎麼押注，才能獲得最高的期望值呢？<br>
