@@ -49,6 +49,13 @@ PDF = approxfun(DENW$x, DENW$y, yleft=0, yright=0)
 x = seq(43,96,0.5)
 y = sapply(x, function(i) integrate(PDF, -Inf, i)$value)
 lines(x, y, col='red', lwd=4, lty=3) 
+# Mark Range
+x1 = 80; x2 = 90
+rect(x1,-0.1,x2,1.2,col= rgb(0,1,0,alpha=0.2),border=NA)
+# x = seq(x1, x2, length=100)
+# polygon(c(x, x2, x1),  c(PDF(x), 0, 0), col="#FF99003F", border=NA)
+# Calculate Probability
+(integrate(PDF, x1, x2)$value)
 ```
 <br>
 【A.選擇方法】<br>
