@@ -45,40 +45,63 @@ Adjust = 1   # bandwidth adjustment
 DENW = density(W, adjust = Adjust) #DENW = DEN for waiting time
 lines(DENW, col='gold', lwd=3)
 # Smooth CDF
-PDFW = approxfun(DENW$x, DENW$y, yleft=0, yright=0) #PDFW = PDF for waiting time
+PDF = approxfun(DENW$x, DENW$y, yleft=0, yright=0) 
 x = seq(43,96,0.5)
-y = sapply(x, function(i) integrate(PDFW, -Inf, i)$value)
+y = sapply(x, function(i) integrate(PDF, -Inf, i)$value)
 lines(x, y, col='red', lwd=4, lty=3) 
 ```
+<br>
 【A.選擇方法】<br>
 &emsp;■ 我們為甚麼需要隨機變數？ 什麼時候我們需要用到隨機變數？<br>
-Ans:<br>
-(1)因為隨機變數沒有固定的值, 能代入任何數值<br>
-(2)面對沒有固定值但有出現機率的資料時<br>
+```{r}
+#Ans:
+#(1)因為隨機變數沒有固定的值, 能代入任何數值
+#(2)面對沒有固定值但有出現機率的資料時
+```
 &emsp;■ 隨機變數沒有固定的值，那我們要如何做計算呢？<br>
-Ans:用機率密度函數(PDF)計算<br>
+```{r}
+#Ans:用機率密度函數(PDF)計算
+```
 &emsp;■ 我們可以用直方圖或數值標記來估計噴發時間落在某一區間的機率嗎？<br>
-Ans:可以<br>
+```{r}
+#Ans:可以
+```
 &emsp;■ 直方圖(histogram)也可以當作一種模型嗎？ 數值標記(rug)呢？<br>
-Ans:單純直方圖與rug並不適合作為預測模型，因為只是出現次數分布視覺化的一種表達<br>
+```{r}
+#Ans:單純直方圖與rug並不適合作為預測模型，因為只是出現次數分布視覺化的一種表達
+```
 &emsp;■ 直方圖和平滑模型哪一個比較適合用來表示噴發時間的分布？ 為甚麼？<br>
-Ans:直方圖，因為較直觀<br>
+```
+Ans:直方圖，因為較直觀
+```
 &emsp;■ 用數值標記來預測噴發時間會比用直方圖「準」嗎？ 「準」是什麼意思呢？<br>
-Ans:<br>
-(1)直方圖會較適合，因有機率可以參考<br>
-(2)凖是指有預測能力。<br>
+```{r}
+#Ans:
+#(1)直方圖會較適合，因有機率可以參考
+#(2)凖是指有預測能力。
+```
 <br>
 【B.調整參數】調整一下模型參數的滑桿 ...<br>
 &emsp;■ 你覺得最合適的直方圖欄數(`support/binwidth`)是？ 為甚麼？<br>
-Ans:0.6<br>
+```{r}
+#Ans:16，看起來比較符合分配
+```
 &emsp;■ 最合適的平滑模型頻寬(`bandwidth`)呢？<br>
-Ans:16<br>
+```{r}
+#Ans:0.6
+```
 &emsp;■ 調高欄寬和頻寬會讓模型變複雜，還是變簡單呢？<br>
-Ans:調高欄寬變複雜, 調高頻寬變簡單<br>
+```{r}
+#Ans:變簡單
+```
 &emsp;■ 模型越複雜，它跟實際值之間的誤差是越大、還是越小？<br>
-Ans:誤差會越小，且越接近原始數據<br>
+```{r}
+#Ans:誤差會越大
+```
 &emsp;■ 那麼，越複雜的模型就會越準，對嗎？<br>
-Ans:不一定，因為太接近原始資料就沒預測的價值了<br>
+```{r}
+#Ans:不一定，會有過度適配的問題
+```
 <br>
 【C.建立模型、估計機率】<br>
 請從課堂筆記的程式碼找出來 ... <br>
@@ -101,14 +124,14 @@ D = faithful$eruptions
 #(1)Adjust = 1   # bandwidth adjustment
 Adjust = 1
 DENW = density(W, adjust = Adjust)
-PDFW = approxfun(DENW$x, DENW$y, yleft=0, yright=0)
-integrate(PDFW, 80, 90)$value
+PDF = approxfun(DENW$x, DENW$y, yleft=0, yright=0)
+integrate(PDF, 80, 90)$value
 #Ans:0.26805065
 #(2)Adjust = 0.5 # bandwidth adjustment
 Adjust = 0.5
 DENW = density(W, adjust = Adjust)
-PDFW = approxfun(DENW$x, DENW$y, yleft=0, yright=0)
-integrate(PDFW, 80, 90)$value
+PDF = approxfun(DENW$x, DENW$y, yleft=0, yright=0)
+integrate(PDF, 80, 90)$value
 #Ans:0.2827451
 #(3)不一定，有時候會有過度適配的問題。
 ```
@@ -123,8 +146,9 @@ D = faithful$eruptions
 Adjust = 0.5
 DEN = density(D, adjust = Adjust)
 PDF = approxfun(DEN$x, DEN$y, yleft=0, yright=0) #建好噴發時間的模型
-#以下以for迴圈的概念，抓出彼此間隔為60秒的兩點i1＆i2，並積分兩點得出機率
-i1=seq(1,5,by=0.1)
+#以下以for迴圈的概念，抓出彼此間隔為60秒的兩點i1＆i2，
+#先積分兩點得出機率再將值存入 data frame p的V3
+i1=seq(1,5,by=0.1)  #seq(a,b,c) 此函數為從a到b兩數值間，按間隔c劃分出的各個點
 i2=seq(2,6,by=0.1)
 p=data.frame(i1,i2)
 for(i in 1:41){
@@ -144,13 +168,48 @@ p[which(p$V3==max(p$V3)),] #再透過[]索引找出機率最大位於哪兩點�
 <br>
 假如賭場老闆從零開始把每10秒鐘設為一個區間，每個區間的賭金是五塊錢 ...<br>
 ```{r}
+D = faithful$eruptions
+Adjust = 0.5
+DEN = density(D, adjust = Adjust)
+PDF = approxfun(DEN$x, DEN$y, yleft=0, yright=0) #建好噴發時間的模型
 
+#以for迴圈的概念，抓出彼此間隔為10秒＝1/6分鐘的兩點i3＆i4
+#先積分兩點得出機率再將值存入data frame p1的V3
+i3=seq(1,6-1/6,by=1/6)   
+i4=seq(1+1/6,6,by=1/6)
+p1=data.frame(i3,i4)
+for(i in 1:30){
+  p1[i,3]=integrate(PDF,i3[i],i4[i])$value
+}
+head(p1[order(p1$V3,decreasing=T),],10) #取出機率從由高到小的前10點
 ```
 &emsp;■ 你要怎麼押注，才能獲得最高的期望值呢？<br>
+```{r}
+#從上圖得知最高期望值的前10名投注起始時間為，
+#4分20秒>4分30秒>4分10秒>1分50秒>4分>
+#2分>4分40秒>1分40秒>3分50秒>2分10秒
+```
 &emsp;■ 你的賭金和期望值各是多少？<br>
+```{r}
+seq.time = seq(0,6,1/6)
+ans = sapply(seq.time,function(x){
+  pro=integrate(PDF,x,(x+1/6))$value
+  -5*(1-pro)+95*pro
+  })
+sum(tail(sort(ans),10)) #選取前10區間，賭金50，期望值24.24224
+sum(tail(sort(ans),5)) #選取前5區間，賭金25，期望值18.32678
+sum(tail(sort(ans),3)) #選取前3區間，賭金15，期望值12.44745
+```
 <br>
 將獲利的期望值和賭金的比值稱為「期望投資報酬率」 ...<br>
 &emsp;■ 「最大期望投資報酬率」和「最大期望報酬」的投資策略是一樣的嗎？<br>
+```{r}
+#最大期望投資報酬率意思是投入期間總利潤除以投入成本，
+#最大期望報酬為投入期間總利潤，因為考慮到成本，所以投資策略不一樣。
+```
 &emsp;■ 你認為哪一個策略目標比較好呢？ 為什麼？<br>
+```{r}
+#最大期望投資報酬率，因為考慮到投入成本的問題。
+```
 <br>
 </p class="qiz">
