@@ -1,6 +1,6 @@
 ---
 title: UNIT07A：程式、機率與決策
-author: 中山大學管理學院 卓雍然
+author: 中山大學管理學院
 date: "`r Sys.time()`"
 output: 
   html_document:
