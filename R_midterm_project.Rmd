@@ -1,5 +1,5 @@
 ---
-title: "R Notebook"
+title: "Group7_midterm_project"
 output: html_notebook
 ---
 
@@ -29,7 +29,7 @@ library(brazilmaps)
 library(lubridate)
 library(stringr)
 library(reshape2)
-register_google(key= "AIzaSyAyW3vBFsnezxJlEmuw0jwnCRtDHyQDFKY")
+
 
 ```
 
