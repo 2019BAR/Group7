@@ -1,0 +1,493 @@
+---
+title: "Group7_midterm_project"
+output: html_notebook
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Ctrl+Shift+Enter*. 
+
+```{r}
+#套件
+library(ggmap)
+library(mapproj)
+library(rgdal)
+library(rgeos)
+library(maptools)
+library(dplyr)
+library(ggplot2)
+library(mapproj)
+library(devtools)
+library(RColorBrewer)
+library(brazilmaps)
+library(scatterpie)
+library(maps)
+library(d3heatmap)
+library(devtools)
+library(RColorBrewer)
+library(brazilmaps)
+library(lubridate)
+library(stringr)
+library(reshape2)
+
+register_google(key= "AIzaSyAyW3vBFsnezxJlEmuw0jwnCRtDHyQDFKY")
+```
+
+```{r}
+#資料框
+#combine = read.csv("combined_data.csv")
+#geo = read.csv("olist_geolocation_dataset.csv")
+#combine = read.csv("combine.csv")
+new_data = combine %>% select(customer_state,payment_type,product_category_name,product_category_name_english,payment_installments,price) %>%
+filter(product_category_name_english == "watches_gifts"  & customer_state %in% c("MG","PR","SP","RJ","RS"))
+new_data_c = combine %>% select(customer_city,payment_type,product_category_name_english) #%>%
+#filter(product_category_name_english == "watches_gifts") 
+lng = tapply(geo$geolocation_lng,geo$geolocation_state,mean)
+lng_c = tapply(geo$geolocation_lng,geo$geolocation_city,mean)
+lat = tapply(geo$geolocation_lat,geo$geolocation_state,mean)
+lat_c = tapply(geo$geolocation_lat,geo$geolocation_city,mean)
+geo_state = data.frame(
+  state = names(lng),
+  lng = as.numeric(lng),
+  lat = as.numeric(lat)
+)
+geo_city = data.frame(
+  city = names(lng_c),
+  lng_c = as.numeric(lng_c),
+  lat_c = as.numeric(lat_c)
+)
+Data = merge(geo_state,new_data,by.x = "state",by.y="customer_state",all.y = T)
+Data_c = merge(geo_city,new_data_c,by.x = "city",by.y="customer_city",all.y = T)
+#mean(is.na(Data))
+
+```
+
+
+```{r}
+#城市付款方式
+map = get_map(location = "Brazil",zoom = 4,maptype = "terrain",
+               color = "color",source = "google")
+ggmap(map, 
+      base_layer = ggplot(data = Data_c, aes(x = lng_c, y = lat_c))) + 
+  geom_point(aes(fill = payment_type, col = payment_type), alpha = 0.5, size = 1.5)
+```
+
+
+```{r}
+#各州付款方式
+library(ggplot2)# Stacked Percent
+ggplot(new_data, aes(fill=customer_state, y=1, x=payment_type)) + 
+    geom_bar( stat="identity")
+```
+
+```{r}
+
+#圓餅圖
+Data = merge(geo_state,new_data,by.x = "state",by.y="customer_state",all.y = T)
+a = table(Data$state,Data$payment_type)
+temp = data.frame(
+  state = names(a[,1]),
+  boleto = a[,1],
+  credit_card = a[,2],
+  debit_card = a[,3],
+  voucher = a[,4]
+)
+Data = merge(temp,geo_state,by ="state",all.x=T)
+result = c(1,2)
+for(i in c(1:nrow(Data))){
+  result[i] = sqrt(sum(Data[i,2:5]))/17
+}
+Data = mutate(Data,radius = result)
+map = get_map(location = "Brazil",zoom = 4,maptype = "toner-lite",color = "color",source = "google")
+ggmap(map)+
+ geom_scatterpie(data = Data , aes(x=lng, y=lat, group = state, r=radius),
+                      color=NA,cols=c("boleto","credit_card","debit_card","voucher"), alpha=.6)+
+ scale_fill_manual(
+        breaks = c("boleto","credit_card","debit_card","voucher"),
+        labels = c("boleto","credit_card","debit_card","voucher"),
+        values = c("boleto" = "blue",
+                   "credit_card" = "red",
+                   "debit_card" = "black",
+                   "voucher" = "cyan")
+    ) 
+```
+```{r}
+new_data = combine %>% select(customer_state,payment_type,product_category_name,product_category_name_english,payment_installments,price) %>%
+filter(product_category_name_english == "watches_gifts"  & customer_state %in% c("MG","PR","SP","RJ","RS")) %>% filter(payment_type=="credit_card")
+
+ggplot(new_data, aes(x=payment_installments ,y=1 ,fill = customer_state)) +
+  geom_bar(stat = "identity") 
+
+temp = new_data %>% group_by(payment_installments) %>% summarise( mean_price = mean(price),times = n())
+ggplot(temp, aes(x = payment_installments, y = mean_price))+
+geom_point(stat = "identity",color = "red",size = 4) +geom_smooth()  +theme_light()
+
+#  a = new_data %>% filter(payment_installments==8)
+# ggplot(a, aes(x = customer_state, y = price),ylim = c(0,1000)) +geom_boxplot()
+
+```
+
+
+
+
+
+
+```{r}
+#將整合後的資料讀入
+#data<- read.csv("combined_data.csv")
+#將商品種類名稱翻譯
+ts<- read.csv("product_category_name_translation.csv")
+ts2 = data.frame(product_category_name = ts[,1] , en_name = ts[,2])
+ts_data = merge(combine, ts2, by="product_category_name")
+#建立一個州名稱與簡寫的data
+state_ab <- data.frame(customer_state=c('AC','AL','AP','AM','BA','CE','DF','ES','GO','MA','MG','MS','MT','PA','PB','PE','PI','PR','RJ','RN','RO','RR','RS','SC','SE','SP','TO'), 
+                       state=c('ACRE','ALAGOAS','AMAPA','AMAZONAS','BAHIA','CEARA','DISTRITO FEDERAL','ESPIRITO SANTO','GOIAS','MARANHAO','MINAS GERAIS','MATO GROSSO DO SUL','MATO GROSSO','PARA','PARAIBA','PERNAMBUCO','PIAUI','PARANA','RIO DE JANEIRO','RIO GRANDE DO NORTE','RONDONIA','RORAIMA','RIO GRANDE DO SUL','SANTA CATARINA','SERGIPE','SAO PAULO','TOCANTINS'))
+#將它與大資料整合
+newdata = merge(ts_data, state_ab, by='customer_state')
+#擷取整合資料
+data2 <- select(newdata, en_name, state, price,review_score) %>%
+  rename(name=en_name,score = review_score)
+#選出總銷售量與額都可觀的商品
+category <- select(data2, name, price) %>%    
+  group_by(name) %>%                            
+  summarise(q = n(), sale = sum(price)) %>%
+  mutate(rankn = rank(desc(q)), rankp = rank(desc(sale)), p = sale/q) %>%   #排名與算出各商品平均單價
+  filter(rankn <= 10 & rankp <= 10)                              #找出總價與總量都要在排名前10的商品(有賺頭的強勢商品)
+category
+
+#X軸為總銷量 Y軸為平均單價 來選出適合商品
+ggplot(category)+
+  geom_point(aes(x = sale, y = p, col = name))
+
+```
+
+
+```{r}
+#找出各州銷售量top10的商品與銷售總額
+statetop10 <- select(data2, name, state,price,score) %>%    
+  group_by(state, name) %>%
+  summarize(n = n(), sale=sum(price), score = mean(score)) %>%    
+  mutate(rankn = rank(desc(n)), p = sale/n) %>%
+  filter(rankn <= 10.5)
+
+#各州銷售量top3與商品種類直方圖分布
+ggplot(statetop10, aes(x=state ,y=n ,fill=name)) +
+  geom_bar(stat = "identity") +
+  coord_flip()
+
+```
+
+
+```{r}
+#選出賣相最好的州
+top10_topstate = group_by(statetop10, state) %>%
+  summarize(n = sum(n), p = sum(sale)) %>%
+  mutate(rankn = rank(desc(n)), rankp = rank(desc(p))) %>%       #將各州top3商品的總銷售量與總銷售額做排名
+  filter(rankn <= 5 & rankp <=5)          #取出量與額排名同時都在5名內的(表示該州具有可觀市場)
+
+top10_topstate
+
+#繪製在州圖上
+BM <- get_brmap(geo = "State")
+BM <- select(BM, nome, geometry) %>%
+  arrange(nome) %>%
+  mutate(en_name = c('ACRE','ALAGOAS','AMAPA','AMAZONAS','BAHIA','CEARA','DISTRITO FEDERAL','ESPIRITO SANTO','GOIAS','MARANHAO','MATO GROSSO','MATO GROSSO DO SUL','MINAS GERAIS','PARA','PARAIBA','PARANA','PERNAMBUCO','PIAUI','RIO DE JANEIRO','RIO GRANDE DO NORTE','RIO GRANDE DO SUL','RONDONIA','RORAIMA','SANTA CATARINA','SAO PAULO','SERGIPE','TOCANTINS')) %>%
+  rename(state=en_name)
+
+map_name <- plot_brmap(BM,
+                       data_to_join = top10_topstate,
+                       join_by = c("state" = "state"),
+                       var = "n")
+map_name
+#從前面的top3資料再擷取這五州
+statefocus = filter(statetop10,
+                    state == "MINAS GERAIS" |
+                    state == "PARANA" |
+                    state == "RIO DE JANEIRO" |
+                    state == "RIO GRANDE DO SUL" |
+                    state == "SAO PAULO")
+
+#細看這5州的商品單價P與Q關係
+ggplot(statefocus) +
+  geom_point(aes(x = n, y = p , col = name)) +
+  facet_grid(state~.)
+
+ggplot(statefocus) +
+  geom_point(aes(x = n, y = score , col = name)) +
+  facet_grid(state~.) 
+
+
+
+```
+
+```{r}
+Translate <- read.csv("product_category_name_translation.csv")
+Mydata <- combine[, c("X", "order_id", "customer_zip_code_prefix", "customer_city", "customer_state", "price", "product_category_name", "product_weight_g", "order_purchase_timestamp")]
+
+#每週購買時間點熱圖
+Mydata$order_purchase_timestamp = as.POSIXct(Mydata$order_purchase_timestamp, format="%Y-%m-%d %H:%M:%S")
+ts = as.POSIXct(Mydata$order_purchase_timestamp, format="%Y-%m-%d %H:%M:%S")
+table(format(ts,"%u"), format(ts,"%H")) %>% 
+  as.data.frame.matrix %>% 
+  d3heatmap(F,F,col=colorRamp(c('seagreen','lightyellow','red')))
+
+#一年中購買量熱圖
+ts1 = as.POSIXct(Mydata$order_purchase_timestamp, format="%Y-%m-%d %H:%M:%S")
+table(format(ts1,"%m"), format(ts1,"%d")) %>% 
+  as.data.frame.matrix %>% 
+  d3heatmap(F,F,col=colorRamp(c('seagreen','lightyellow','red')))
+
+#2016-2018年各月購買量
+ts1 = as.POSIXct(Mydata$order_purchase_timestamp, format="%Y-%m-%d %H:%M:%S")
+table(format(ts1,"%Y"), format(ts1,"%m")) %>% 
+  as.data.frame.matrix %>% 
+  d3heatmap(F,F,col=colorRamp(c('seagreen','lightyellow','red')))
+
+table(format(ts1,"%m"), format(ts1,"%Y")) %>% 
+  as.data.frame.matrix %>% 
+  d3heatmap(F,F,col=colorRamp(c('seagreen','lightyellow','red')))
+```
+```{r}
+#讀excel檔
+reviews = read.csv("olist_order_reviews_dataset.csv")
+orders = read.csv("olist_orders_dataset.csv")
+payments = read.csv("olist_order_payments_dataset.csv")
+customers = read.csv("olist_customers_dataset.csv")
+item = read.csv("olist_order_items_dataset.csv")
+products = read.csv("olist_products_dataset.csv")
+geolocation = read.csv("olist_geolocation_dataset.csv")
+seller = read.csv("olist_sellers_dataset.csv")
+#excel倆倆合併
+A_reviews_orders = merge(reviews,orders,by="order_id")
+B_payments_orders = merge(payments,orders,by="order_id")
+C_item_orders = merge(orders,item,by="order_id")
+D_customers_orders = merge(orders,customers,by="customer_id")
+E_reviews_payments = merge(reviews,payments,by="order_id")
+F_payments_item = merge(payments,item,by="order_id")
+G_items_product = merge(item,products,by="product_id")
+#合併檔下,將文字轉換成日期格式，然後用實際到達時間-預計到達時間 存在A裡 單位為天數 負數為比預期時間提早到
+A_reviews_orders$diff = difftime(as.Date(A_reviews_orders$order_estimated_delivery_date,na.rm=TRUE),as.Date(A_reviews_orders$order_delivered_customer_date,na.rm=TRUE),units = "days")
+#seller geolocation
+seller_location = geolocation%>%
+  group_by(geolocation_zip_code_prefix) %>%
+  summarise(lat =mean(geolocation_lat),lng=mean(geolocation_lng)) %>%
+  inner_join(seller,by = c("geolocation_zip_code_prefix"="seller_zip_code_prefix"))
+#coustomer geolocation
+customers_location =geolocation %>%
+  group_by(geolocation_zip_code_prefix) %>%
+  summarise(lat =mean(geolocation_lat),lng=mean(geolocation_lng)) %>%
+  inner_join(customers,by = c("geolocation_zip_code_prefix"="customer_zip_code_prefix"))
+
+A=merge(A_reviews_orders,customers_location,by="customer_id")
+A$d=as.numeric(A$diff)
+A$dd=A$d>0
+#各評分與送達時間比例圖
+ggplot(A,aes(x=A$review_score,fill=A$dd))+geom_bar(position="dodge")
+ggplot(A,aes(x=A$customer_state,fill=A$dd))+geom_bar(position="dodge")
+#各評分與與送達時間圖
+ggplot(A,aes(x=A$review_score,y=A$d))+geom_point(size=1)
+ggplot(A,aes(x=A$customer_state,y=A$d))+geom_point(size=1)
+```
+
+```{r}
+#各評分的資料數量
+#table(A_reviews_orders$review_score)
+#各評分的資料數量占全部百分比
+#table(A_reviews_orders$review_score)%>% prop.table %>%round(3)
+#各state的各評分資料數量
+#table(A$customer_state,A$review_score)
+#各state的各評分資料數量所占百分比
+#table(A$customer_state,A$review_score)%>% prop.table %>%round(5)
+
+
+
+#各評分與平均送達時間
+#tapply(A$diff , A$review_score ,mean,na.rm=TRUE)
+#各state與平均送達時間
+#tapply(A$diff , A$customer_state ,mean,na.rm=TRUE)   %>%sort(decreasing = TRUE)
+
+
+#按各state和各review_score分類的平均送達時間
+#group_by(A,customer_state,review_score)%>%summarise(diff=mean(diff,na.rm=TRUE))
+
+
+#各state的平均評分
+#tapply(A$review_score , A$customer_state , mean,na.rm=TRUE)
+#地圖'Brazil'
+#guides = 圖例
+#extent = 'device' =滿版
+#scale_color_continuous(low = "yellow",high = "red")圖例顏色
+register_google(key= "AIzaSyAyW3vBFsnezxJlEmuw0jwnCRtDHyQDFKY")
+#範圍:巴西
+map = get_map(location = 'Brazil', zoom = 5,language = "zh-TW", maptype = "roadmap")
+ggmap(map)
+#範圍:巴西首都巴西利亞
+map2 <- get_map(location = c(lon=-47.9218204,lat=-15.8266910), zoom = 12,language = "zh-TW", maptype = "roadmap")
+ggmap(map2)
+#黑白巴西圖
+map3 = get_map(location = 'Brazil', zoom = 5,language = "zh-TW", maptype = "toner-lite")
+ggmap(map3)
+```
+
+```{r}
+#每筆評分的位置
+ggmap(map) + geom_point(aes(x = lng, y = lat, color = review_score,size=review_score), data =A )+scale_size_area(max_size = 2)
+ggmap(map2)+geom_point(aes(x = lng, y = lat, color = review_score,size=review_score),data = A)+scale_size_area(max_size = 2)
+
+ggmap(map) + geom_point(aes(x = lng, y = lat, color = review_score,size=d), data =A )+scale_size_area(max_size = 5)
+ggmap(map2)+geom_point(aes(x = lng, y = lat, color = review_score,size=d),data = A)+scale_size_area(max_size = 5)
+
+ggmap(map3) + geom_point(aes(x = lng, y = lat, color = review_score,size=review_score), data =A )+scale_size_area(max_size = 2)
+ggmap(map3) + geom_point(aes(x = lng, y = lat, color = review_score,size=d), data =A )+scale_size_area(max_size = 5)
+```
+
+```{r}
+group_by(A,customer_state)%>%summarise(d=mean(diff,na.rm=TRUE))
+B=as.data.frame(group_by(A,customer_state)%>%summarise(d=mean(diff,na.rm=TRUE)))
+rownames(B)=c('ACRE','ALAGOAS','AMAPA','AMAZONAS','BAHIA','CEARA','DISTRITO FEDERAL','ESPIRITO SANTO','GOIAS','MARANHAO','MINAS GERAIS','MATO GROSSO DO SUL','MATO GROSSO','PARA','PARAIBA','PERNAMBUCO','PIAUI','PARANA','RIO DE JANEIRO','RIO GRANDE DO NORTE','RONDONIA','RORAIMA','RIO GRANDE DO SUL','SANTA CATARINA','SERGIPE','SAO PAULO','TOCANTINS')
+B$customer_state=rownames(B)
+B$customer_state=as.character(B$customer_state)
+B$d=as.numeric(B$d)
+
+group_by(A,customer_state)%>%summarise(e=mean(review_score,na.rm=TRUE))
+C=as.data.frame(group_by(A,customer_state)%>%summarise(e=mean(review_score,na.rm=TRUE)))
+B$e=C$e
+```
+
+```{r}
+#各State平均送達時間
+BM <- get_brmap(geo = "State")
+BM1 <- plot_brmap(BM,
+data_to_join = B,
+join_by = c("nome" = "customer_state"),
+var = "d")
+BM1
+#各State平均分數
+BM2 <- plot_brmap(BM,
+data_to_join = B,
+join_by = c("nome" = "customer_state"),
+var = "e")
+BM2
+
+
+barplot(sort(tapply(A$review_score , A$customer_state , mean,na.rm=TRUE)), xlab = "State", ylab = "平均評分",horiz = TRUE,main = "各state的平均評分）")
+barplot(sort(tapply(A$diff , A$customer_state ,mean,na.rm=TRUE)), xlab = "State", ylab = "平均送達時間",horiz = TRUE,main = "各state的平均送達時間）")
+
+```
+```{r}
+#data<-read.csv("combined_data.csv")
+datadays<-subset(newdata,select = c("order_purchase_timestamp","customer_state","payment_value","en_name"))
+pmonth<-month(datadays$order_purchase_timestamp)
+datadaysp<-cbind(datadays,pmonth)
+
+datadaysp5 = filter(datadaysp,
+                    customer_state == "MG" |
+                    customer_state == "PA" |
+                    customer_state == "RJ" |
+                    customer_state == "RN" |
+                    customer_state == "SP")
+datatdaysp5w= filter(datadaysp5,
+                     en_name=="watches_gifts")
+datatdaysp5w$pmonth <- as.factor(datatdaysp5w$pmonth)
+datatdaysp5wo<-datatdaysp5w[order(datatdaysp5w$order_purchase_timestamp),]
+datatdaysp5wod<-as.data.frame(datatdaysp5wo)
+```
+
+
+```{r}
+p2 <- ggplot(datatdaysp5wod, aes(x=pmonth,y=customer_state)) #熱圖
+p2 <- p2 + geom_tile(aes(fill=payment_value))
+p2 <- p2+ scale_fill_gradient(low = "blue", high = "red")
+p2
+```
+
+```{r}
+
+d = mutate(datatdaysp5wod,date = format(as.Date(datatdaysp5wod$order_purchase_timestamp), "%Y-%m"))
+d = d %>% group_by(date,customer_state) %>% summarise(
+  mean_price = mean(payment_value) )  %>% as.data.frame()
+ggplot(d, aes(date, mean_price, colour = customer_state)) +   geom_point()  +   
+  facet_grid(customer_state~.) 
+
+
+```
+```{r}
+
+#png("每月平.png", width = 1500, height = 1000)
+p3 <- ggplot(d, aes(x=date,y=customer_state)) #熱圖
+p3 <- p3 + geom_tile(aes(fill=mean_price))
+p3 <- p3+ scale_fill_gradient(low ="grey" , high = "red")
+p3
+#dev.off()
+```
+
+
+
+
+
+```{r}
+#combined<- read.csv("combined_data.csv")
+translation <- read.csv("product_category_name_translation.csv")
+colnames(translation) <-c("product_category_name","product_category_name_english")
+#totaldata <- merge(combine,translation,by="product_category_name")
+#top10各產品的評分比例
+sort(table(combine$product_category_name_english),decreasing = T)
+totaltop10 <- filter(combine,product_category_name_english==c("bed_bath_table","health_beauty","sports_leisure","furniture_decor","computers_accessories","housewares","watches_gifts","telephony","garden_tools","auto"))
+ggplot(totaltop10,aes(product_category_name_english,fill=factor(review_score))) + geom_bar(position="fill") + labs(title = "top10product") + coord_flip()
+#各州評分分佈
+ggplot(combine,aes(customer_state,fill=factor(review_score))) + geom_bar(position="fill") + coord_flip() + labs(title="reviewdistribution")
+#找前十大州
+sort(table(combine$customer_state),decreasing = T)
+#SP前十大商品評分比例
+SPstate <- filter(combine , customer_state == "SP")
+sort(table(SPstate$product_category_name_english),decreasing = T)
+SPtop10 <- filter(SPstate,product_category_name_english==c("bed_bath_table","health_beauty","sports_leisure","furniture_decor","housewares","computers_accessories","watches_gifts","auto","toys","telephony"))
+ggplot(SPtop10,aes(product_category_name_english,fill=factor(review_score))) + geom_bar(position="fill") + coord_flip()
+#RJ前十大商品分佈
+RJstate <- filter(combine , customer_state == "RJ")
+sort(table(RJstate$product_category_name_english),decreasing = T)
+RJtop10 <- filter(RJstate,product_category_name_english==c("bed_bath_table","funiture_decor","health_beauty","sports_leisure","computer_accessories","housewares","watches_gifts","garden_tools","toys","cool_stuff"))
+ggplot(RJtop10,aes(product_category_name_english,fill=factor(review_score))) + geom_bar(position="fill") + coord_flip()
+#MG前十大商品分佈
+MGstate <- filter(combine , customer_state == "MG")
+sort(table(MGstate$product_category_name_english),decreasing = T)
+MGtop10 <- filter(RJstate,product_category_name_english==c("bed_bath_table","health_beauty","computer_accessories","furniture_decor","sports_leisure","housewares","watches_gifts","garden_tools","auto","toys"))
+ggplot(MGtop10,aes(product_category_name_english,fill=factor(review_score))) + geom_bar(position="fill") + coord_flip()
+#RS前十大商品分佈
+RSstate <- filter(combine , customer_state == "RS")
+sort(table(RSstate$product_category_name_english),decreasing = T)
+RStop10 <- filter(RJstate,product_category_name_english==c("bed_bath_table","furniture_decor","computer_accessories","sports_leisure","health_beauty","housewares","gardon_tools","telephony","cool_stuff","watches_gifts"))
+ggplot(RStop10,aes(product_category_name_english,fill=factor(review_score))) + geom_bar(position="fill") + coord_flip()
+```
+
+```{r}
+#PR前十大商品分佈
+PRstate <- filter(combine , customer_state == "PR")
+sort(table(PRstate$product_category_name_english),decreasing = T)
+PRtop10 <- filter(RJstate,product_category_name_english==c("furniture_decor","sports_leisure","bed_bath_table","health_beauty","computers_accessories","housewares","watches_gifts","telephony","auto","cool_stuff"))
+ggplot(PRtop10,aes(product_category_name_english,fill=factor(review_score))) + geom_bar(position="fill") + coord_flip()
+#各州前10產品評分盒狀圖
+boxplot(formula = review_score ~ customer_state, 
+        data = totaltop10,       
+        xlab = "customer_state",          
+        ylab = "review_score",    
+        col ="gray") 
+SPstate <- filter(combine , customer_state == "SP")
+sort(table(SPstate$product_category_name_english),decreasing = T)
+SPtop5 <- filter(SPstate,product_category_name_english==c("bed_bath_table","health_beauty","sports_leisure","furniture_decor","housewares"))
+
+RJstate <- filter(combine , customer_state == "RJ")
+sort(table(RJstate$product_category_name_english),decreasing = T)
+RJtop5 <- filter(RJstate,product_category_name_english==c("bed_bath_table","funiture_decor","health_beauty","sports_leisure","computer_accessories"))
+
+MGstate <- filter(combine , customer_state == "MG")
+sort(table(MGstate$product_category_name_english),decreasing = T)
+MGtop5 <- filter(MGstate,product_category_name_english==c("bed_bath_table","health_beauty","computer_accessories","furniture_decor","sports_leisure"))
+
+binddata <- rbind.data.frame(SPtop5,RJtop5,MGtop5)
+
+ggplot(binddata,aes(customer_state,fill=product_category_name_english)) + geom_bar()
+```
+
+
+
