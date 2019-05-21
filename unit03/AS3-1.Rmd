@@ -189,7 +189,7 @@ tapply(mvt$Arrest, format(ts,'%Y'), mean) %>% round(3) # 0.085
 
 【3.5】 For what proportion of motor vehicle thefts in 2012 was an arrest made?
 ```{r}
-#指令同上:550/(550+13542)=0.03903
+#指令同上:550/(550+13542)=0.03903  .
 ```
 
 <br><br>
